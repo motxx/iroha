@@ -37,3 +37,5 @@ target_link_libraries(model_converters
     schema
     logger
     )
+
+add_subdirectory(generators)
