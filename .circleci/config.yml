@@ -4,7 +4,7 @@ jobs:
     # must be IROHA_HOME:
     working_directory: /opt/iroha
     docker:
-      - image: lebdron/iroha-dev
+      - image: hyperledger/iroha-docker-develop
         environment:
           IROHA_HOME: /opt/iroha
           IROHA_BUILD: /tmp/build
@@ -12,16 +12,10 @@ jobs:
       - image: redis:3.2.8
     steps:
       - checkout
-
-      - run:
-          name: deps install
-          command:  apt update &&  apt install curl -y
-
-      - run:
-          name: ensure, required folders created
-          command: |
-            mkdir -p $IROHA_HOME
-            mkdir -p $IROHA_BUILD
+      - restore_cache:
+          key: build-cache
+          paths:
+            - ~/.ccache
       - run:
           name: cmake
           command: cmake -DCOVERAGE=ON -H$IROHA_HOME -B$IROHA_BUILD
@@ -31,6 +25,10 @@ jobs:
       - run:
           name: run tests
           command: cmake --build $IROHA_BUILD --target test
+      - save_cache:
+          key: build-cache
+          paths:
+            - ~/.ccache
 #      - run:
 #          name: comment coverage on the pull-request
 #          command: $IROHA_HOME/scripts/comment-coverage.sh

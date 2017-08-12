@@ -35,4 +35,5 @@ target_link_libraries(yac
     grpc++
     uvw
     logger
+    yac_grpc
     )
