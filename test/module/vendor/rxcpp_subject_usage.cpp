@@ -15,18 +15,14 @@
  * limitations under the License.
  */
 
-#ifndef IROHA_RXCPP_SUBJECT_USAGE_HPP
-#define IROHA_RXCPP_SUBJECT_USAGE_HPP
 #include <gtest/gtest.h>
 
-#include "rxcpp/rx.hpp"
+#include <rxcpp/rx.hpp>
 #include <iostream>
 
-using namespace rxcpp;
-using namespace rxcpp::sources;
-using namespace rxcpp::subjects;
-using namespace rxcpp::util;
-using namespace std;
+using std::string;
+using std::cout;
+using std::endl;
 
 struct Person {
   string name;
@@ -35,7 +31,7 @@ struct Person {
 };
 
 TEST(rxcppTest, usage_subject_test) {
-  subject<Person> person$;
+  rxcpp::subjects::subject<Person> person$;
 
   // group ages by gender
   auto agebygender$ = person$.
@@ -54,4 +50,3 @@ TEST(rxcppTest, usage_subject_test) {
   person$.get_subscriber().on_completed();
   person$.get_subscriber().on_next(Person{"Vasya", "Male", 32});
 }
-#endif //IROHA_RXCPP_SUBJECT_USAGE_HPP

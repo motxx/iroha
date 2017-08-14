@@ -58,6 +58,7 @@ add_library(ordering_grpc
 target_link_libraries(ordering_grpc
     protobuf
     grpc++
+    schema
     )
 
 add_library(loader_grpc
