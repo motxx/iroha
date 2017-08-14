@@ -1,6 +1,6 @@
 add_library(rapidjson INTERFACE IMPORTED)
 
-find_path(Rapidjson_INCLUDE_DIR google/protobuf/service.h)
+find_path(Rapidjson_INCLUDE_DIR rapidjson/rapidjson.h)
 mark_as_advanced(Rapidjson_INCLUDE_DIR)
 
 find_package(PackageHandleStandardArgs REQUIRED)
