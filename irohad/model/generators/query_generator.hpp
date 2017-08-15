@@ -36,7 +36,7 @@ namespace iroha {
          * @param account_id
          * @return
          */
-        GetAccount generateGetAccount(ts64_t timestamp, std::string creator,
+        std::shared_ptr<GetAccount> generateGetAccount(ts64_t timestamp, std::string creator,
                                       uint64_t query_counter,
                                       std::string account_id);
         /**
@@ -48,7 +48,7 @@ namespace iroha {
          * @param asset_id
          * @return
          */
-        GetAccountAssets generateGetAccountAssets(ts64_t timestamp,
+        std::shared_ptr<GetAccountAssets> generateGetAccountAssets(ts64_t timestamp,
                                                   std::string creator,
                                                   uint64_t query_counter,
                                                   std::string account_id,
@@ -61,7 +61,7 @@ namespace iroha {
          * @param account_id
          * @return
          */
-        GetSignatories generateGetSignatories(ts64_t timestamp,
+        std::shared_ptr<GetSignatories> generateGetSignatories(ts64_t timestamp,
                                               std::string creator,
                                               uint64_t query_counter,
                                               std::string account_id);
@@ -73,7 +73,7 @@ namespace iroha {
          * @param account_id
          * @return
          */
-        GetAccountTransactions generateGetAccountTransactions(
+        std::shared_ptr<GetAccountTransactions> generateGetAccountTransactions(
             ts64_t timestamp, std::string creator, uint64_t query_counter,
             std::string account_id);
 

@@ -1,3 +1,5 @@
+add_subdirectory(generators)
+
 add_library(model
     model_crypto_provider_impl.cpp
     model_hash_provider_impl.cpp
@@ -34,8 +36,8 @@ add_library(model_converters
 target_link_libraries(model_converters
     rapidjson
     optional
-    schema
     logger
+    model_generators
+    model
     )
 
-add_subdirectory(generators)

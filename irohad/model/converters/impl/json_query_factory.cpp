@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
+#define RAPIDJSON_HAS_STDSTRING 1
+
 #include "model/converters/json_query_factory.hpp"
-#include <algorithm>
+#include "model/converters/json_common.hpp"
 
 namespace iroha {
   namespace model {
@@ -24,26 +26,31 @@ namespace iroha {
 
       using namespace rapidjson;
 
-      JsonQueryFactory::JsonQueryFactory() :log_(logger::log("JsonQueryFactory")) {
+
+      JsonQueryFactory::JsonQueryFactory()
+          : log_(logger::log("JsonQueryFactory")) {
         deserializers_["GetAccount"] = &JsonQueryFactory::deserializeGetAccount;
-        deserializers_["GetAccountAsset"] =
+        deserializers_["GetAccountAssets"] =
             &JsonQueryFactory::deserializeGetAccountAssets;
-        deserializers_["GetAccountAssetTransactions"] =
-            &JsonQueryFactory::deserializeGetAccountAssetTransactions;
         deserializers_["GetAccountTransactions"] =
             &JsonQueryFactory::deserializeGetAccountTransactions;
         deserializers_["GetAccountSignatories"] =
             &JsonQueryFactory::deserializeGetSignatories;
+        // Serializers
+        serializers_[typeid(GetAccount)] = &JsonQueryFactory::serializeGetAccount;
+        serializers_[typeid(GetSignatories)] = &JsonQueryFactory::serializeGetSignatories;
+        serializers_[typeid(GetAccountAssets)] = &JsonQueryFactory::serializeGetAccountAssets;
+        serializers_[typeid(GetAccountTransactions)] = &JsonQueryFactory::serializeGetAccountTransactions;
       }
 
-      nonstd::optional<iroha::protocol::Query> JsonQueryFactory::deserialize(
+      std::shared_ptr<iroha::model::Query> JsonQueryFactory::deserialize(
           const std::string query_json) {
         log_->info("Deserialize query json");
         iroha::protocol::Query pb_query;
         Document doc;
         if (doc.Parse(query_json.c_str()).HasParseError()) {
           log_->error("Json is ill-formed");
-          return nonstd::nullopt;
+          return nullptr;
         }
         // check if all necessary fields are there
         auto obj_query = doc.GetObject();
@@ -54,7 +61,7 @@ namespace iroha {
                           return not obj_query.HasMember(field);
                         })) {
           log_->error("No required fields in json");
-          return nonstd::nullopt;
+          return nullptr;
         }
 
         auto sig = obj_query["signature"].GetObject();
@@ -62,113 +69,149 @@ namespace iroha {
         // check if signature has all needed fields
         if (not sig.HasMember("pubkey")) {
           log_->error("No pubkey in signature in json");
-          return nonstd::nullopt;
+          return nullptr;
         }
         if (not sig.HasMember("signature")) {
           log_->error("No signature in json");
-          return nonstd::nullopt;
+          return nullptr;
         }
-
-        auto pb_header = pb_query.mutable_header();
-        pb_header->set_created_time(obj_query["created_ts"].GetUint64());
-        auto pb_sig = pb_header->mutable_signature();
-        pb_sig->set_pubkey(sig["pubkey"].GetString());
-        pb_sig->set_signature(sig["signature"].GetString());
-
-        // set creator account id
-        pb_query.set_creator_account_id(
-            obj_query["creator_account_id"].GetString());
-
-        // set query counter
-        pb_query.set_query_counter(obj_query["query_counter"].GetUint64());
-
-
         auto query_type = obj_query["query_type"].GetString();
-
         auto it = deserializers_.find(query_type);
-        if (it != deserializers_.end() and
-            (this->*it->second)(obj_query, pb_query)) {
-          return pb_query;
-        } else {
-          return nonstd::nullopt;
+        if (it != deserializers_.end()) {
+          auto query = (this->*it->second)(obj_query);
+          if (not query) {
+            return nullptr;
+          }
+          // Get signature
+          query->signature = {};
+          // query->signature.pubkey = sig["pubkey"].GetString();
+          // query->signature.signature = sig["signature"].GetString();
+          return query;
         }
+        log_->error("No query type found");
+        return nullptr;
       }
 
-      bool JsonQueryFactory::deserializeGetAccount(
-          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query,
-          protocol::Query &pb_query) {
+      std::shared_ptr<iroha::model::Query>
+      JsonQueryFactory::deserializeGetAccount(
+          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query) {
         if (not obj_query.HasMember("account_id")) {
           log_->error("No account id in json");
-          return false;
+          return nullptr;
         }
-        auto pb_get_account = pb_query.mutable_get_account();
-        pb_get_account->set_account_id(obj_query["account_id"].GetString());
-
-        return true;
+        auto timestamp = obj_query["created_ts"].GetUint64();
+        auto creator = obj_query["creator_account_id"].GetString();
+        auto counter = obj_query["query_counter"].GetUint64();
+        auto account_id = obj_query["account_id"].GetString();
+        return query_generator_.generateGetAccount(timestamp, creator, counter,
+                                                   account_id);
       }
 
-      bool JsonQueryFactory::deserializeGetSignatories(
-          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query,
-          protocol::Query &pb_query) {
+      std::shared_ptr<iroha::model::Query>
+      JsonQueryFactory::deserializeGetSignatories(
+          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query) {
         if (not obj_query.HasMember("account_id")) {
           log_->error("No account id in json");
-          return false;
+          return nullptr;
         }
-        auto pb_get_signatories = pb_query.mutable_get_account_signatories();
-        pb_get_signatories->set_account_id(obj_query["account_id"].GetString());
-
-        return true;
+        auto timestamp = obj_query["created_ts"].GetUint64();
+        auto creator = obj_query["creator_account_id"].GetString();
+        auto counter = obj_query["query_counter"].GetUint64();
+        auto account_id = obj_query["account_id"].GetString();
+        return query_generator_.generateGetSignatories(timestamp, creator,
+                                                       counter, account_id);
       }
 
-      bool JsonQueryFactory::deserializeGetAccountTransactions(
-          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query,
-          protocol::Query &pb_query) {
+      std::shared_ptr<iroha::model::Query>
+      JsonQueryFactory::deserializeGetAccountTransactions(
+          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query) {
         if (not obj_query.HasMember("account_id")) {
           log_->error("No account id in json");
-          return false;
+          return nullptr;
         }
-        auto pb_get_account_transactions =
-            pb_query.mutable_get_account_transactions();
-        pb_get_account_transactions->set_account_id(
-            obj_query["account_id"].GetString());
-
-        return true;
+        auto timestamp = obj_query["created_ts"].GetUint64();
+        auto creator = obj_query["creator_account_id"].GetString();
+        auto counter = obj_query["query_counter"].GetUint64();
+        auto account_id = obj_query["account_id"].GetString();
+        return query_generator_.generateGetAccountTransactions(
+            timestamp, creator, counter, account_id);
       }
 
-      bool JsonQueryFactory::deserializeGetAccountAssetTransactions(
-          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query,
-          protocol::Query &pb_query) {
+      std::shared_ptr<iroha::model::Query>
+      JsonQueryFactory::deserializeGetAccountAssets(
+          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query) {
         if (not(obj_query.HasMember("account_id") &&
                 obj_query.HasMember("asset_id"))) {
-          log_->error("No account, asset id in json");
-          return false;
+          log_->error("No account id, asset id in json");
+          return nullptr;
         }
-
-        auto pb_get_account_asset_transactions =
-            pb_query.mutable_get_account_asset_transactions();
-        pb_get_account_asset_transactions->set_account_id(
-            obj_query["account_id"].GetString());
-        pb_get_account_asset_transactions->set_asset_id(
-            obj_query["asset_id"].GetString());
-
-        return true;
+        auto timestamp = obj_query["created_ts"].GetUint64();
+        auto creator = obj_query["creator_account_id"].GetString();
+        auto counter = obj_query["query_counter"].GetUint64();
+        auto account_id = obj_query["account_id"].GetString();
+        auto asset_id = obj_query["asset_id"].GetString();
+        return query_generator_.generateGetAccountAssets(
+            timestamp, creator, counter, account_id, asset_id);
       }
 
-      bool JsonQueryFactory::deserializeGetAccountAssets(
-          rapidjson::GenericValue<rapidjson::UTF8<char>>::Object &obj_query,
-          protocol::Query &pb_query) {
-        if (not(obj_query.HasMember("account_id") &&
-                obj_query.HasMember("asset_id"))) {
-          log_->error("No account, asset id in json");
-          return false;
-        }
-        auto pb_get_account_assets = pb_query.mutable_get_account_assets();
-        pb_get_account_assets->set_account_id(
-            obj_query["account_id"].GetString());
-        pb_get_account_assets->set_asset_id(obj_query["asset_id"].GetString());
+      nonstd::optional<std::string> JsonQueryFactory::serialize(
+          std::shared_ptr<Query> model_query) {
+        Document doc;
+        auto &allocator = doc.GetAllocator();
+        doc.SetObject();
+        doc.AddMember("creator_account_id", model_query->creator_account_id,
+                      allocator);
+        doc.AddMember("query_counter", model_query->query_counter, allocator);
+        doc.AddMember("created_ts", model_query->created_ts, allocator);
+        Value signature;
+        signature.SetObject();
+        signature.CopyFrom(serializeSignature(model_query->signature),
+                           allocator);
 
-        return true;
+        doc.AddMember("signature", signature, allocator);
+
+        auto it = serializers_.find(typeid(*model_query));
+        if (it != serializers_.end()) {
+          (this->*it->second)(doc, model_query);
+          return jsonToString(doc);
+        }
+        log_->error("Query type convertation not implemented");
+        return nonstd::nullopt;
       }
+
+      void JsonQueryFactory::serializeGetAccount(Document &json_doc,
+                                                 std::shared_ptr<Query> query) {
+        auto &allocator = json_doc.GetAllocator();
+        json_doc.AddMember("query_type", "GetAccount", allocator);
+        auto get_account = std::static_pointer_cast<GetAccount>(query);
+        json_doc.AddMember("account_id", get_account->account_id, allocator);
+      }
+      void JsonQueryFactory::serializeGetAccountAssets(
+          Document &json_doc, std::shared_ptr<Query> query) {
+        auto &allocator = json_doc.GetAllocator();
+        json_doc.AddMember("query_type", "GetAccountAssets", allocator);
+        auto casted_query = std::static_pointer_cast<GetAccountAssets>(query);
+        json_doc.AddMember("account_id", casted_query->account_id, allocator);
+        json_doc.AddMember("asset_id", casted_query->asset_id, allocator);
+      }
+
+      void JsonQueryFactory::serializeGetSignatories(
+          Document &json_doc, std::shared_ptr<Query> query) {
+        auto &allocator = json_doc.GetAllocator();
+        json_doc.AddMember("query_type", "GetSignatories", allocator);
+        auto get_account = std::static_pointer_cast<GetSignatories>(query);
+        json_doc.AddMember("account_id", get_account->account_id, allocator);
+      }
+
+      void JsonQueryFactory::serializeGetAccountTransactions(
+          Document &json_doc, std::shared_ptr<Query> query) {
+        auto &allocator = json_doc.GetAllocator();
+        json_doc.AddMember("query_type", "GetAccountTransactions", allocator);
+        auto get_account =
+            std::static_pointer_cast<GetAccountTransactions>(query);
+        json_doc.AddMember("account_id", get_account->account_id, allocator);
+      }
+
     }  // namespace converters
   }    // namespace model
 }  // namespace iroha

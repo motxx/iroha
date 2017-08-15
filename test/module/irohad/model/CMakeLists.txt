@@ -75,3 +75,10 @@ addtest(json_query_factory_test converters/json_query_factory_test.cpp)
 target_link_libraries(json_query_factory_test
     model_converters
     )
+
+addtest(pb_query_factory_test converters/pb_query_factory_test.cpp)
+target_link_libraries(pb_query_factory_test
+    model
+    model_generators
+    )
+
