@@ -33,6 +33,7 @@ add_library(client
     impl/query_response_handler.cpp
     impl/transaction_response_handler.cpp
     impl/grpc_response_handler.cpp
+    impl/interactive_cli.cpp
     )
 target_link_libraries(client
     model_converters
@@ -44,6 +45,8 @@ target_link_libraries(client
     query_client
     ametsuchi
     model_generators
+    parser
+    model
     )
 
 target_include_directories(client PUBLIC

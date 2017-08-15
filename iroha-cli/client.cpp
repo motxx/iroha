@@ -17,9 +17,9 @@
 
 #include "client.hpp"
 #include <model/converters/json_query_factory.hpp>
-#include <utility>
 #include "model/converters/json_common.hpp"
 #include "model/converters/json_transaction_factory.hpp"
+#include "model/converters/pb_query_factory.hpp"
 #include "model/converters/pb_transaction_factory.hpp"
 
 namespace iroha_cli {
@@ -27,7 +27,8 @@ namespace iroha_cli {
   CliClient::CliClient(std::string target_ip, int port)
       : command_client_(target_ip, port), query_client_(target_ip, port) {}
 
-  CliClient::Response<CliClient::TxStatus> CliClient::sendTx(std::string json_tx) {
+  CliClient::Response<CliClient::TxStatus> CliClient::sendJsonTx(
+      std::string json_tx) {
     CliClient::Response<CliClient::TxStatus> response;
     iroha::model::converters::JsonTransactionFactory serializer;
     auto doc = iroha::model::converters::stringToJson(std::move(json_tx));
@@ -42,10 +43,15 @@ namespace iroha_cli {
       response.answer = WRONG_FORMAT;
       return response;
     }
-    auto model_tx = tx_opt.value();
+    return sendTx(tx_opt.value());
+  }
+
+  CliClient::Response<CliClient::TxStatus> CliClient::sendTx(
+      iroha::model::Transaction tx) {
+    CliClient::Response<CliClient::TxStatus> response;
     // Convert to protobuf
     iroha::model::converters::PbTransactionFactory factory;
-    auto pb_tx = factory.serialize(model_tx);
+    auto pb_tx = factory.serialize(tx);
     // Send to iroha:
     iroha::protocol::ToriiResponse toriiResponse;
     response.status = command_client_.Torii(pb_tx, toriiResponse);
@@ -56,16 +62,13 @@ namespace iroha_cli {
     return response;
   }
 
-  CliClient::Response<iroha::protocol::QueryResponse> CliClient::sendQuery(
+  CliClient::Response<iroha::protocol::QueryResponse> CliClient::sendJsonQuery(
       std::string json_query) {
     CliClient::Response<iroha::protocol::QueryResponse> response;
     iroha::model::converters::JsonQueryFactory serializer;
-
     auto query_opt = serializer.deserialize(std::move(json_query));
-
     iroha::protocol::QueryResponse query_response;
-
-    if (not query_opt.has_value()) {
+    if (not query_opt) {
       iroha::protocol::ErrorResponse er;
       er.set_reason(iroha::protocol::ErrorResponse::WRONG_FORMAT);
       query_response.mutable_error_response()->CopyFrom(er);
@@ -73,8 +76,17 @@ namespace iroha_cli {
       response.answer = query_response;
       return response;
     }
+    return sendQuery(query_opt);
+  }
 
-    response.status = query_client_.Find(query_opt.value(), query_response);
+  CliClient::Response<iroha::protocol::QueryResponse> CliClient::sendQuery(
+      std::shared_ptr<iroha::model::Query> query) {
+    CliClient::Response<iroha::protocol::QueryResponse> response;
+    // Convert to proto and send to Iroha
+    iroha::model::converters::PbQueryFactory pb_factory;
+    auto pb_query = pb_factory.serialize(query);
+    iroha::protocol::QueryResponse query_response;
+    response.status = query_client_.Find(pb_query.value(), query_response);
     response.answer = query_response;
     return response;
   }
