@@ -19,7 +19,8 @@ find_package_handle_standard_args(Uvw DEFAULT_MSG
 
 if (NOT UVW_FOUND)
   externalproject_add(libuv_libuv
-      URL https://github.com/libuv/libuv/archive/v1.13.1.tar.gz
+      GIT_REPOSITORY https://github.com/libuv/libuv
+      GIT_TAG 2bb4b68758f07cd8617838e68c44c125bc567ba6
       CONFIGURE_COMMAND ./autogen.sh && ./configure
       BUILD_IN_SOURCE 1
       BUILD_COMMAND $(MAKE)
@@ -36,6 +37,7 @@ if (NOT UVW_FOUND)
 
   externalproject_add(skypjack_uvw
       GIT_REPOSITORY "https://github.com/skypjack/uvw.git"
+      GIT_TAG 00de1f1110ce4a9803a85a214af5326529f11312
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ""
       INSTALL_COMMAND "" # remove install step

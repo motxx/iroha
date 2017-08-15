@@ -125,4 +125,11 @@ RUN git clone https://github.com/01org/tbb /tmp/tbb-2017_U7; \
     ldconfig; \
     rm -rf /tmp/tbb-2017_U7
 
+# install docker
+RUN curl -L -o /tmp/docker-17.06.0-ce.tgz https://download.docker.com/linux/static/stable/x86_64/docker-17.06.0-ce.tgz; \
+    tar -xz -C /tmp -f /tmp/docker-17.06.0-ce.tgz; \
+    mv /tmp/docker/* /usr/bin; \
+    rm /tmp/docker-17.06.0-ce.tgz; \
+    rm -rf /tmp/docker
+
 CMD ["/bin/bash"]
