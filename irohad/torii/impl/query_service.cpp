@@ -28,14 +28,18 @@ namespace torii {
       : pb_query_factory_(pb_query_factory),
         pb_query_response_factory_(pb_query_response_factory),
         query_processor_(query_processor) {
+    log_ = logger::log("QueryService");
     // Subscribe on result from iroha
     query_processor_->queryNotifier().subscribe([this](auto iroha_response) {
       // Find client to respond
       auto res = handler_map_.find(iroha_response->query_hash.to_string());
       // Serialize to proto an return to response
-      res->second =
-          pb_query_response_factory_->serialize(iroha_response).value();
-
+      auto val = pb_query_response_factory_->serialize(iroha_response).value();
+      // Remember query in a cache system
+      // TODO: come up with more efficient solution, e.g. clean cache
+      old_queries_[res->first].CopyFrom(val);
+      res->second = val;
+      handler_map_.erase(res->first);
     });
   }
 
@@ -43,9 +47,16 @@ namespace torii {
                                iroha::protocol::QueryResponse& response) {
     // Get iroha model query
     auto query = pb_query_factory_->deserialize(request);
+    // Find if query was already processed
+    auto it = old_queries_.find(query->query_hash.to_string());
+    if (it != old_queries_.end()) {
+      log_->warn("Requesting same query");
+      response = it->second;
+      return;
+    }
     // Query - response relationship
     handler_map_.insert({query->query_hash.to_string(), response});
-    // Send query to iroha
+    // Process query
     query_processor_->queryHandle(query);
   }
-}
+}  // namespace torii
