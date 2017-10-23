@@ -17,27 +17,18 @@
 
 #include "ametsuchi/impl/flat_file_block_query.hpp"
 
-#include "model/converters/json_common.hpp"
+#include <deque>
+#include "crypto/hash.hpp"
+#include "model/commands/add_asset_quantity.hpp"
 #include "model/commands/transfer_asset.hpp"
 
 namespace iroha {
   namespace ametsuchi {
     FlatFileBlockQuery::FlatFileBlockQuery(FlatFile &block_store)
-        : block_store_(block_store) {}
-
-    rxcpp::observable<model::Transaction>
-    FlatFileBlockQuery::getAccountTransactions(std::string account_id) {
-      return getBlocksFrom(1)
-          .flat_map([](auto block) {
-            return rxcpp::observable<>::iterate(block.transactions);
-          })
-          .filter([account_id](auto tx) {
-            return tx.creator_account_id == account_id;
-          });
-    }
+      : block_store_(block_store) {}
 
     rxcpp::observable<model::Block> FlatFileBlockQuery::getBlocks(
-        uint32_t height, uint32_t count) {
+      uint32_t height, uint32_t count) {
       auto to = height + count;
       auto last_id = block_store_.last_id();
       if (to > last_id) {
@@ -54,7 +45,7 @@ namespace iroha {
             return;
           }
           auto document =
-              model::converters::stringToJson(bytesToString(bytes.value()));
+            model::converters::stringToJson(bytesToString(bytes.value()));
           if (not document.has_value()) {
             s.on_completed();
             return;
@@ -71,12 +62,12 @@ namespace iroha {
     }
 
     rxcpp::observable<model::Block> FlatFileBlockQuery::getBlocksFrom(
-        uint32_t height) {
+      uint32_t height) {
       return getBlocks(height, block_store_.last_id());
     }
 
     rxcpp::observable<model::Block> FlatFileBlockQuery::getTopBlocks(
-        uint32_t count) {
+      uint32_t count) {
       auto last_id = block_store_.last_id();
       if (count > last_id) {
         count = last_id;
@@ -85,22 +76,81 @@ namespace iroha {
     }
 
     rxcpp::observable<model::Transaction>
-    FlatFileBlockQuery::getAccountAssetTransactions(std::string account_id,
-                                                    std::string asset_id) {
-      return getAccountTransactions(account_id)
-          .filter([account_id, asset_id](auto tx) {
-            return std::any_of(
-                tx.commands.begin(), tx.commands.end(),
-                [account_id, asset_id](auto command) {
-                  if (instanceof <model::TransferAsset>(*command)) {
-                    auto transferAsset = (model::TransferAsset *)command.get();
-                    return (transferAsset->src_account_id == account_id or
-                            transferAsset->dest_account_id == account_id) and
-                           transferAsset->asset_id == asset_id;
-                  }
-                  return false;
-                });
-          });
+    FlatFileBlockQuery::getAccountTransactions(
+      std::string account_id, model::Pager pager) {
+      std::deque<model::Transaction> reverser;
+      getBlocksFrom(1)
+        .flat_map([](auto block) {
+          return rxcpp::observable<>::iterate(block.transactions);
+        })
+        .take_while([&](auto tx) { return iroha::hash(tx) != pager.tx_hash; })
+          // filter txs by specified creator after take_while until tx_hash
+          // to deal with other creator's tx_hash
+        .filter([account_id](auto tx) {
+          return tx.creator_account_id == account_id;
+        })
+          // size of retrievable blocks and transactions should be restricted
+          // in stateless validation.
+        .take_last(pager.limit)
+          // reverse transactions by pushing front of deque.
+        .subscribe([&](auto tx) { reverser.push_front(tx); });
+      return rxcpp::observable<>::iterate(reverser);
     }
+
+    rxcpp::observable<model::Transaction>
+    FlatFileBlockQuery::getAccountAssetTransactions(
+      std::string account_id, std::vector<std::string> assets_id,
+      model::Pager pager) {
+      using iroha::model::TransferAsset;
+      using iroha::model::AddAssetQuantity;
+
+      const auto check_command = [&](auto const& command) -> bool {
+        // TransferAsset
+        if (const auto transfer =
+          std::dynamic_pointer_cast<TransferAsset>(command)) {
+          return (transfer->src_account_id == account_id or
+                  transfer->dest_account_id == account_id) and
+                 // size of commands should be restricted
+                 // in stateless validation.
+                 std::any_of(assets_id.begin(), assets_id.end(),
+                             [&](auto const &a) {
+                               return a == transfer->asset_id;
+                             });
+        }
+
+        // AddAssetQuantity
+        if (const auto add =
+          std::dynamic_pointer_cast<AddAssetQuantity>(command)) {
+          return add->account_id == account_id and
+                 std::any_of(assets_id.begin(), assets_id.end(),
+                             [&](auto const &a) {
+                               return a == add->asset_id;
+                             });
+        }
+        return false;
+      };
+
+      std::deque<model::Transaction> reverser;
+      getBlocksFrom(1)
+        .flat_map([](auto block) {
+          return rxcpp::observable<>::iterate(block.transactions);
+        })
+          // local variables can be captured because this observable will be
+          // subscribed in this function.
+        .take_while([&](auto const &tx) {
+          return iroha::hash(tx) != pager.tx_hash;
+        })
+        .filter([&](auto const &tx) {
+          return std::any_of(tx.commands.begin(),
+                             tx.commands.end(), check_command);
+        })
+          // size of retrievable blocks and transactions should be
+          // restricted in stateless validation.
+        .take_last(pager.limit)
+          // reverse transactions by pushing front of deque.
+        .subscribe([&](auto tx) { reverser.push_front(tx); });
+      return rxcpp::observable<>::iterate(reverser);
+    }
+
   }  // namespace ametsuchi
 }  // namespace iroha
