@@ -36,10 +36,22 @@ namespace iroha {
       RedisBlockQuery(cpp_redis::redis_client &client, FlatFile &file_store);
 
       rxcpp::observable<model::Transaction> getAccountTransactions(
-          const std::string &account_id) override;
+          const std::string &account_id);// override;
 
       rxcpp::observable<model::Transaction> getAccountAssetTransactions(
-          const std::string &account_id, const std::string &asset_id) override;
+          const std::string &account_id, const std::string &asset_id);// override;
+
+      rxcpp::observable<model::Transaction> getAccountTransactions(
+        const std::string& account_id, const model::Pager& pager) override {
+          return rxcpp::observable<>::just(model::Transaction{});
+      }
+
+      rxcpp::observable<model::Transaction> getAccountAssetTransactions(
+        const std::string& account_id,
+        const std::vector<std::string>& assets_id,
+        const model::Pager& pager) override {
+          return rxcpp::observable<>::just(model::Transaction{});
+      }
 
       boost::optional<model::Transaction> getTxByHashSync(
           const std::string &hash) override;
