@@ -21,6 +21,7 @@
 #include "ametsuchi/block_query.hpp"
 
 #include "ametsuchi/impl/flat_file/flat_file.hpp"
+#include "ametsuchi/impl/redis_block_query.hpp"
 #include "model/converters/json_block_factory.hpp"
 #include "model/queries/get_account_transactions.hpp"
 #include "model/queries/get_account_asset_transactions.hpp"
@@ -29,7 +30,7 @@ namespace iroha {
   namespace ametsuchi {
     class FlatFileBlockQuery : public BlockQuery {
      public:
-      explicit FlatFileBlockQuery(FlatFile &block_store);
+      FlatFileBlockQuery(cpp_redis::redis_client &client, FlatFile &file_store);
 
       rxcpp::observable<model::Block> getBlocks(uint32_t height,
                                                 uint32_t count) override;
@@ -46,8 +47,15 @@ namespace iroha {
         const std::vector<std::string>& assets_id,
         const model::Pager& pager) override;
 
+      virtual boost::optional<model::Transaction> getTxByHashSync(
+        const std::string &hash) override {
+        return redis_block_query_.getTxByHashSync(hash);
+      }
+
      protected:
       FlatFile &block_store_;
+      cpp_redis::redis_client &client_;
+      RedisBlockQuery redis_block_query_; //TODO 07/11/17 motxx Replace with RedisBlockQuery only.
       model::converters::JsonBlockFactory serializer_;
 
      private:

@@ -24,8 +24,10 @@
 
 namespace iroha {
   namespace ametsuchi {
-    FlatFileBlockQuery::FlatFileBlockQuery(FlatFile &block_store)
-        : block_store_(block_store) {}
+    FlatFileBlockQuery::FlatFileBlockQuery(
+      cpp_redis::redis_client &client, FlatFile &file_store)
+      : block_store_(file_store), client_(client),
+        redis_block_query_(client, file_store) /* temporary solution */ {}
 
     rxcpp::observable<model::Block> FlatFileBlockQuery::getBlocks(
         uint32_t height, uint32_t count) {

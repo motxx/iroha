@@ -46,6 +46,13 @@ DEFINE_validator(keypair_name, &validate_keypair_name);
 int main(int argc, char *argv[]) {
   auto log = logger::log("MAIN");
   log->info("start");
+
+  if (not config_validator_registered
+      or not keypair_name_validator_registered) {
+    log->error("Flag validator is not registered");
+    return EXIT_FAILURE;
+  }
+
   namespace mbr = config_members;
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -69,6 +76,10 @@ int main(int argc, char *argv[]) {
                 config[mbr::PgOpt].GetString(),
                 config[mbr::ToriiPort].GetUint(),
                 config[mbr::InternalPort].GetUint(),
+                config[mbr::MaxProposalSize].GetUint(),
+                std::chrono::milliseconds(config[mbr::ProposalDelay].GetUint()),
+                std::chrono::milliseconds(config[mbr::VoteDelay].GetUint()),
+                std::chrono::milliseconds(config[mbr::LoadDelay].GetUint()),
                 keypair);
 
   if (not irohad.storage) {

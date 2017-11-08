@@ -20,6 +20,7 @@
 
 #include <cmath>
 
+#include <boost/optional.hpp>
 #include <model/block.hpp>
 #include <model/transaction.hpp>
 #include <rxcpp/rx-observable.hpp>
@@ -77,6 +78,14 @@ namespace iroha {
        * @return observable of Model Block
        */
       virtual rxcpp::observable<model::Block> getTopBlocks(uint32_t count) = 0;
+
+      /**
+       * Synchronously gets transaction by its hash
+       * @param hash - hash to search
+       * @return transaction or boost::none
+       */
+      virtual boost::optional<model::Transaction> getTxByHashSync(
+          const std::string &hash) = 0;
     };
   }  // namespace ametsuchi
 }  // namespace iroha

@@ -123,7 +123,6 @@ namespace iroha {
               break;
             }
             case Query_Payload::QueryCase::kGetRoles: {
-              // Convert to get Roles
               val = std::make_shared<GetRoles>();
               break;
             }
@@ -189,7 +188,7 @@ namespace iroha {
         auto pb_query_mut = pl->mutable_get_account();
         pb_query_mut->set_account_id(account_id);
         return pb_query;
-      };
+      }
 
       protocol::Query PbQueryFactory::serializeGetAccountAssets(
           std::shared_ptr<const Query> query) const {
@@ -201,7 +200,7 @@ namespace iroha {
         pb_query_mut->set_account_id(tmp->account_id);
         pb_query_mut->set_asset_id(tmp->asset_id);
         return pb_query;
-      };
+      }
 
       protocol::Query PbQueryFactory::serializeGetAccountTransactions(
           std::shared_ptr<const Query> query) const {

@@ -30,8 +30,8 @@
 #include "model/converters/json_transaction_factory.hpp"
 #include "model/converters/pb_common.hpp"
 #include "model/generators/transaction_generator.hpp"
-#include "parser/parser.hpp"
 #include "model/permissions.hpp"
+#include "parser/parser.hpp"
 
 using namespace iroha::model;
 
@@ -236,16 +236,13 @@ namespace iroha_cli {
       auto create_account = parser::parseValue<bool>(params[8]);
 
       if (not read_self.has_value() or not edit_self.has_value()
-          or not read_all.has_value()
-          or not transfer_receive.has_value()
-          or not asset_create.has_value()
-          or not create_domain.has_value()
-          or not roles.has_value()
-          or not create_account.has_value()) {
+          or not read_all.has_value() or not transfer_receive.has_value()
+          or not asset_create.has_value() or not create_domain.has_value()
+          or not roles.has_value() or not create_account.has_value()) {
         std::cout << "Wrong format for permission" << std::endl;
         return nullptr;
       }
-      std::unordered_set<std::string> perms;
+      std::set<std::string> perms;
       if (read_self.value()) {
         perms.insert(read_self_group.begin(), read_self_group.end());
       }
@@ -439,16 +436,19 @@ namespace iroha_cli {
 
       // Forming a transaction
 
-      auto tx = tx_generator_.generateTransaction( creator_,
-                                                  tx_counter_, commands_);
+      auto tx =
+          tx_generator_.generateTransaction(creator_, tx_counter_, commands_);
       // clear commands so that we can start creating new tx
       commands_.clear();
 
       provider_->sign(tx);
 
-      CliClient client(address.value().first, address.value().second);
       GrpcResponseHandler response_handler;
-      response_handler.handle(client.sendTx(tx));
+
+      response_handler.handle(
+          CliClient(address.value().first, address.value().second).sendTx(tx));
+
+      printTxHash(tx);
       printEnd();
       // Stop parsing
       return false;
@@ -502,6 +502,14 @@ namespace iroha_cli {
       printMenu("Choose command to add: ", commands_menu_);
       // Continue parsing
       return true;
+    }
+
+    void InteractiveTransactionCli::printTxHash(iroha::model::Transaction &tx) {
+      std::cout
+          << "Congratulation, your transaction was accepted for processing."
+          << std::endl;
+      std::cout << "Its hash is " << iroha::hash(tx).to_hexstring()
+                << std::endl;
     }
 
   }  // namespace interactive

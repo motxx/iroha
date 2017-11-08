@@ -16,6 +16,7 @@
  */
 
 #include "model/generators/command_generator.hpp"
+#include <model/commands/set_account_detail.hpp>
 #include "model/commands/add_asset_quantity.hpp"
 #include "model/commands/add_peer.hpp"
 #include "model/commands/add_signatory.hpp"
@@ -55,7 +56,8 @@ namespace iroha {
           const std::string &account_name,
           const std::string &domain_id,
           const pubkey_t &key) {
-        return generateCommand<CreateAccount>(account_name, domain_id, key);
+        return generateCommand<CreateAccount>(
+            account_name, domain_id, key);
       }
 
       std::shared_ptr<Command> CommandGenerator::generateCreateDomain(
@@ -72,7 +74,7 @@ namespace iroha {
 
       std::shared_ptr<Command> CommandGenerator::generateCreateAdminRole(
           std::string role_name) {
-        std::unordered_set<std::string> perms = {
+        std::set<std::string> perms = {
             can_create_domain, can_create_account, can_add_peer};
         perms.insert(edit_self_group.begin(), edit_self_group.end());
         perms.insert(read_all_group.begin(), read_all_group.end());
@@ -81,7 +83,7 @@ namespace iroha {
 
       std::shared_ptr<Command> CommandGenerator::generateCreateUserRole(
           std::string role_name) {
-        std::unordered_set<std::string> perms = {can_receive, can_transfer};
+        std::set<std::string> perms = {can_receive, can_transfer};
         // User can read their account
         perms.insert(read_self_group.begin(), read_self_group.end());
         // User can grant permissions to others
@@ -92,7 +94,7 @@ namespace iroha {
 
       std::shared_ptr<Command> CommandGenerator::generateCreateAssetCreatorRole(
           std::string role_name) {
-        std::unordered_set<std::string> perms = {can_receive, can_transfer};
+        std::set<std::string> perms = {can_receive, can_transfer};
         perms.insert(asset_creator_group.begin(), asset_creator_group.end());
         perms.insert(read_self_group.begin(), read_self_group.begin());
         return std::make_shared<CreateRole>(role_name, perms);
@@ -109,7 +111,6 @@ namespace iroha {
           const std::string &account_id, uint32_t quorum) {
         return generateCommand<SetQuorum>(account_id, quorum);
       }
-
 
       std::shared_ptr<Command> CommandGenerator::generateSubtractAssetQuantity(
           const std::string &account_id,

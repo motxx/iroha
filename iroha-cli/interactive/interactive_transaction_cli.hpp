@@ -121,7 +121,6 @@ namespace iroha_cli {
           std::vector<std::string> line);
       std::shared_ptr<iroha::model::Command> parseTransferAsset(
           std::vector<std::string> line);
-
       std::shared_ptr<iroha::model::Command> parseAppendRole(
           std::vector<std::string> line);
       std::shared_ptr<iroha::model::Command> parseCreateRole(
@@ -151,6 +150,11 @@ namespace iroha_cli {
       bool parseSaveFile(std::vector<std::string> params);
       bool parseGoBack(std::vector<std::string> params);
       bool parseAddCommand(std::vector<std::string> params);
+
+      /**
+       * Prints hash of a transaction for user in a readable form
+       */
+      void printTxHash(iroha::model::Transaction &tx);
 
       // ---- Tx data ----
 

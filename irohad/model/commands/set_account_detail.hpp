@@ -14,41 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef IROHA_CREATE_ROLE_HPP
-#define IROHA_CREATE_ROLE_HPP
 
-#include <set>
-#include <string>
-#include "model/command.hpp"
+#ifndef IROHA_ADDACCOUNTDETAIL_HPP
+#define IROHA_ADDACCOUNTDETAIL_HPP
+
+#include <model/command.hpp>
 
 namespace iroha {
   namespace model {
 
-    /**
-     * Create new role in the system
-     */
-    struct CreateRole : public Command {
-      /**
-       * Role to insert to the system
-       */
-      std::string role_name;
-
-      /**
-       * Role permissions
-       */
-      std::set<std::string> permissions;
+    struct SetAccountDetail : public Command {
+      std::string account_id;
+      std::string key;
+      std::string value;
 
       bool operator==(const Command &command) const override;
 
-      CreateRole() {}
-      /**
-       * @param role_name_ - name of the role in the system
-       * @param perms - set of permissions for the role
-       */
-      CreateRole(const std::string &role_name_,
-                 const std::set<std::string> &perms)
-          : role_name(role_name_), permissions(perms) {}
+      SetAccountDetail() {}
+
+      SetAccountDetail(const std::string &account_id,
+                       const std::string &key,
+                       const std::string &value)
+          : account_id(account_id), key(key), value(value) {}
     };
+
   }  // namespace model
 }  // namespace iroha
-#endif  // IROHA_CREATE_ROLE_HPP
+
+#endif  // IROHA_ADDACCOUNTDETAIL_HPP
