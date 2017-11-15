@@ -9,6 +9,7 @@ add_library(ametsuchi
     impl/postgres_wsv_command.cpp
     impl/peer_query_wsv.cpp
 
+    impl/flat_file_block_query.cpp # TODO remove this later
     impl/redis_block_query.cpp
     )
 
