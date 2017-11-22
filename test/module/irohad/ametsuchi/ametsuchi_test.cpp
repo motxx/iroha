@@ -1443,6 +1443,63 @@ TEST_F(AmetsuchiTest, PartsOfTxsWhenGetAcctAssetTxsWithPagerTxHashAndLimit) {
 }
 
 /**
+ * @brief Parts of matched transactions which crosses blocks when tx_hash and
+ * pager.limit specified.
+ *
+ * @given StorageImpl inserted transactions:
+ *   - block 1
+ *     tx1: creator_account_id = admin@domain
+ *          - AddAssetQuantity(alice@domain, irh#domain, 123.4)
+ *     tx2: creator_account_id = admin@domain
+ *          - TransferAsset(src: alice@domain, dest: bob@domain, irh#domain,
+ * 100.0) - block 2 tx3: creator_account_id = admin@domain -
+ * AddAssetQuantity(alice@domain, irh#domain, 200.0) tx4:
+ * creator_account_id = admin@domain - AddAssetQuantity(alice@domain,
+ * irh#domain, 100.0)
+ * @when (account_id: alice@domain1, asset_id: [irh#domain],
+ *        pager: {tx_hash: hash(tx4), limit: 2})
+ * @then Transactions [3, 2] can be retrieved.
+ */
+TEST_F(AmetsuchiTest,
+       PartsOfTxsOfBlocksWhenGetAcctAssetTxsWithPagerTxHashAndLimit) {
+  using namespace default_block;
+  const auto storage =
+    StorageImpl::create(block_store_path, redishost_, redisport_, pgopt_);
+  ASSERT_TRUE(storage);
+  const auto blocks = storage->getBlockQuery();
+  const auto default_block_hash = insert_default_block(storage);
+
+  const auto admin_id = "admin@domain";
+  const auto tx1 =
+    make_tx(admin_id,
+            {std::make_shared<AddAssetQuantity>(
+              ALICE_ID, ASSET1_ID, iroha::Amount(1234, ASSET1_PREC))});
+  const auto tx2 = make_tx(
+    admin_id,
+    {std::make_shared<TransferAsset>(
+      ALICE_ID, BOB_ID, ASSET1_ID, iroha::Amount(1000, ASSET1_PREC))});
+  const auto tx3 =
+    make_tx(admin_id,
+            {std::make_shared<AddAssetQuantity>(
+              ALICE_ID, ASSET1_ID, iroha::Amount(2000, ASSET1_PREC))});
+  const auto tx4 =
+    make_tx(admin_id,
+            {std::make_shared<AddAssetQuantity>(
+              ALICE_ID, ASSET1_ID, iroha::Amount(1000, ASSET1_PREC))});
+  const auto block1 = make_block({tx1, tx2}, 2, default_block_hash);
+  ASSERT_TRUE(storage->insertBlock(block1));
+  const auto block2 = make_block({tx3, tx4}, 3, block1.hash);
+  ASSERT_TRUE(storage->insertBlock(block2));
+
+  const auto pager = Pager{iroha::hash(tx4), 2};
+
+  auto wrapper = make_test_subscriber<EqualToList>(
+    blocks->getAccountAssetTransactions(ALICE_ID, {ASSET1_ID}, pager),
+    std::vector<Transaction>{tx3, tx2});
+  ASSERT_TRUE(wrapper.subscribe().validate());
+}
+
+/**
  * @brief All transactions when num of inserted txs less than pager.limit.
  *
  * @given StorageImpl inserted transactions:
