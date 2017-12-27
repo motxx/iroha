@@ -18,7 +18,6 @@
 #include "interactive/interactive_query_cli.hpp"
 
 #include <fstream>
-
 #include "client.hpp"
 #include "crypto/crypto.hpp"
 #include "crypto/hash.hpp"
@@ -38,7 +37,6 @@ namespace iroha_cli {
       description_map_ = {
           {GET_ACC, "Get Account Information"},
           {GET_ACC_AST, "Get Account's Assets"},
-          {GET_ACC_TX, "Get Account's Transactions"},
           {GET_ACC_SIGN, "Get Account's Signatories"},
           {GET_ROLES, "Get all current roles in the system"},
           {GET_AST_INFO, "Get information about asset"},
@@ -53,7 +51,6 @@ namespace iroha_cli {
       query_params_descriptions_ = {
           {GET_ACC, {acc_id}},
           {GET_ACC_AST, {acc_id, ast_id}},
-          {GET_ACC_TX, {acc_id}},
           {GET_ACC_SIGN, {acc_id}},
           {GET_ROLES, {}},
           {GET_AST_INFO, {ast_id}},
@@ -64,7 +61,6 @@ namespace iroha_cli {
       query_handlers_ = {
           {GET_ACC, &InteractiveQueryCli::parseGetAccount},
           {GET_ACC_AST, &InteractiveQueryCli::parseGetAccountAssets},
-          {GET_ACC_TX, &InteractiveQueryCli::parseGetAccountTransactions},
           {GET_ACC_SIGN, &InteractiveQueryCli::parseGetSignatories},
           {GET_ROLE_PERM, &InteractiveQueryCli::parseGetRolePermissions},
           {GET_ROLES, &InteractiveQueryCli::parseGetRoles},
@@ -158,13 +154,6 @@ namespace iroha_cli {
       auto asset_id = params[1];
       return generator_.generateGetAccountAssets(
           local_time_, creator_, counter_, account_id, asset_id);
-    }
-
-    std::shared_ptr<iroha::model::Query>
-    InteractiveQueryCli::parseGetAccountTransactions(QueryParams params) {
-      auto account_id = params[0];
-      return generator_.generateGetAccountTransactions(
-          local_time_, creator_, counter_, account_id);
     }
 
     std::shared_ptr<iroha::model::Query>

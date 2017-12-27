@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
+#include "model/converters/pb_common.hpp"
 #include "model/converters/pb_query_factory.hpp"
 #include <queries.pb.h>
+#include "common/types.hpp"
 #include "crypto/hash.hpp"
 #include "model/common.hpp"
 #include "model/queries/get_account.hpp"
@@ -25,6 +27,7 @@
 #include "model/queries/get_roles.hpp"
 #include "model/queries/get_signatories.hpp"
 #include "model/queries/get_transactions.hpp"
+#include "model/queries/get_account_transactions.hpp"
 
 namespace iroha {
   namespace model {
@@ -95,6 +98,7 @@ namespace iroha {
               const auto &pb_cast = pl.get_account_transactions();
               auto query = GetAccountTransactions();
               query.account_id = pb_cast.account_id();
+              query.pager = deserializePager(pb_cast.pager());
               val = std::make_shared<model::GetAccountTransactions>(query);
               break;
             }
@@ -188,6 +192,7 @@ namespace iroha {
         auto pb_query_mut =
             pb_query.mutable_payload()->mutable_get_account_transactions();
         pb_query_mut->set_account_id(tmp->account_id);
+        *pb_query_mut->mutable_pager() = serializePager(tmp->pager);
         return pb_query;
       }
 

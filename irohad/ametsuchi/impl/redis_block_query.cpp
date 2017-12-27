@@ -120,25 +120,33 @@ namespace iroha {
       };
     }
 
-    rxcpp::observable<model::Transaction>
-    RedisBlockQuery::getAccountTransactions(const std::string &account_id) {
-      return rxcpp::observable<>::create<model::Transaction>(
-          [this, account_id](auto subscriber) {
-            auto block_ids = this->getBlockIds(account_id);
-            if (block_ids.empty()) {
-              subscriber.on_completed();
-              return;
-            }
+    rxcpp::observable<model::Transaction> RedisBlockQuery::reverseObservable(
+        const rxcpp::observable<model::Transaction> &o) const {
+      std::deque<model::Transaction> reverser;
+      o.subscribe([&reverser](auto tx) { reverser.push_front(tx); });
+      return rxcpp::observable<>::iterate(reverser);
+    }
 
-            for (auto block_id : block_ids) {
-              client_.lrange(account_id + ":" + std::to_string(block_id),
-                             0,
-                             -1,
-                             this->callbackToLrange(subscriber, block_id));
-            }
-            client_.sync_commit();
-            subscriber.on_completed();
-          });
+    rxcpp::observable<model::Transaction>
+    RedisBlockQuery::getAccountTransactions(const std::string &account_id,
+                                            const model::Pager &pager) {
+      // TODO 06/11/17 motxx: Use Redis for getting hash and transactions
+      return reverseObservable(
+          getBlocksFrom(1)
+              .flat_map([](auto block) {
+                return rxcpp::observable<>::iterate(block.transactions);
+              })
+              .take_while([&pager](auto tx) {
+                return iroha::hash(tx) != pager.tx_hash;
+              })
+              // filter txs by specified creator after take_while until tx_hash
+              // to deal with other creator's tx_hash
+              .filter([&account_id](auto tx) {
+                return tx.creator_account_id == account_id;
+              })
+              // size of retrievable blocks and transactions should be
+              // restricted in stateless validation.
+              .take_last(pager.limit));
     }
 
     rxcpp::observable<model::Transaction>

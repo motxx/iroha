@@ -15,39 +15,38 @@
  * limitations under the License.
  */
 
-#ifndef IROHA_MODEL_QUERY_PAGER_HPP
-#define IROHA_MODEL_QUERY_PAGER_HPP
+#ifndef IROHA_GET_ACCOUNT_TRANSACTIONS_HPP
+#define IROHA_GET_ACCOUNT_TRANSACTIONS_HPP
 
+#include <model/query.hpp>
 #include <string>
 #include <vector>
+#include "model/queries/pager.hpp"
 
 namespace iroha {
   namespace model {
     /**
-     * Pager for transactions queries
+     * Query for getting transactions of account
      */
-    struct Pager {
+    struct GetAccountTransactions : Query {
       /**
-       * Transaction hash which is starting point to fetch transactions.
-       * Empty tx_hash means fetching from the top most transaction.
+       * Account identifier
        */
-      iroha::hash256_t tx_hash{};
+      std::string account_id{};
 
       /**
-       * Number of max transactions to fetch transactions
+       * Pager for transactions
        */
-      uint16_t limit{};
+      Pager pager{};
 
-      /**
-       * Max number of limit
-       */
-      static constexpr uint16_t MAX_PAGER_LIMIT = 100;
-
-      bool operator==(Pager const& rhs) const {
-        return tx_hash == rhs.tx_hash and limit == rhs.limit;
+      bool operator==(GetAccountTransactions const &rhs) const {
+        return account_id == rhs.account_id and pager == rhs.pager;
       }
-      bool operator!=(Pager const& rhs) const { return not(operator==(rhs)); }
+
+      bool operator!=(GetAccountTransactions const &rhs) const {
+        return not(operator==(rhs));
+      }
     };
   }  // namespace model
 }  // namespace iroha
-#endif  // IROHA_MODEL_QUERY_PAGER_HPP
+#endif  // IROHA_GET_ACCOUNT_TRANSACTIONS_HPP

@@ -22,6 +22,7 @@
 #include "logger/logger.hpp"
 #include "model/common.hpp"
 #include "model/query.hpp"
+#include "model/queries/pager.hpp"
 #include "queries.pb.h"
 
 namespace iroha {

@@ -20,10 +20,11 @@
 
 #include <model/query.hpp>
 #include <string>
+#include <vector>
+#include "model/queries/pager.hpp"
 
 namespace iroha {
   namespace model {
-
     /**
      * Query for getting transactions of given asset of an account
      */
@@ -38,16 +39,7 @@ namespace iroha {
        */
       std::string asset_id{};
     };
-
-    /**
-      * Query for getting transactions of account
-      */
-    struct GetAccountTransactions : Query {
-      /**
-       * Account identifier
-       */
-      std::string account_id{};
-    };
+    //TODO 06/11/17 motxx Add GetTransactions API
   }  // namespace model
 }  // namespace iroha
 #endif  // IROHA_GET_TRANSACTIONS_HPP
