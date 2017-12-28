@@ -36,7 +36,6 @@ TEST(HandlerTest, QueryRegistration) {
   auto log = logger::testLog("HandlerTest");
 
   QueryRegistry registry;
-
   ASSERT_EQ(10, registry.query_handler.types().size());
 }
 
@@ -47,5 +46,3 @@ TEST(HandlerTest, QueryResponseRegistration) {
 
   ASSERT_EQ(9, registry.query_response_handler.types().size());
 }
-
-

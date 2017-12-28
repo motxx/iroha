@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef IROHA_BLOCK_GENERATOR_HPP
+#define IROHA_BLOCK_GENERATOR_HPP
 
 #include "model/block.hpp"
 #include "model/generators/transaction_generator.hpp"
 
-#ifndef IROHA_BLOCK_GENERATOR_HPP
-#define IROHA_BLOCK_GENERATOR_HPP
 namespace iroha {
   namespace model {
     namespace generators {
@@ -50,9 +50,8 @@ namespace iroha {
           const iroha::hash256_t &prev_hash,
           const std::vector<iroha::model::Transaction> &transactions);
       };
-
     }  // namespace generators
-  }    // namespace model
+  }  // namespace model
 }  // namespace iroha
 
 #endif  // IROHA_BLOCK_GENERATOR_HPP
