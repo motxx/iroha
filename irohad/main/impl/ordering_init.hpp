@@ -51,7 +51,8 @@ namespace iroha {
           std::shared_ptr<ametsuchi::PeerQuery> wsv,
           size_t max_size,
           std::chrono::milliseconds delay_milliseconds,
-          std::shared_ptr<network::OrderingServiceTransport> transport);
+          std::shared_ptr<network::OrderingServiceTransport> transport,
+          std::shared_ptr<network::PeerCommunicationService> pcs);
 
      public:
       /**
@@ -60,12 +61,14 @@ namespace iroha {
        * @param loop - handler of async events
        * @param max_size - limitation of proposal size
        * @param delay_milliseconds - delay before emitting proposal
+       * @param pcs - notification for events
        * @return effective realisation of OrderingGate
        */
       std::shared_ptr<ordering::OrderingGateImpl> initOrderingGate(
           std::shared_ptr<ametsuchi::PeerQuery> wsv,
           size_t max_size,
-          std::chrono::milliseconds delay_milliseconds);
+          std::chrono::milliseconds delay_milliseconds,
+          std::shared_ptr<network::PeerCommunicationService> pcs);
 
       std::shared_ptr<ordering::OrderingServiceImpl> ordering_service;
       std::shared_ptr<ordering::OrderingGateImpl> ordering_gate;

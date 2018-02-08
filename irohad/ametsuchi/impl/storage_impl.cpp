@@ -251,6 +251,12 @@ DROP TABLE IF EXISTS role;
 
       storage->transaction_->exec("COMMIT;");
       storage->committed = true;
+      block_height_notifier_.get_subscriber().on_next(
+          storage->block_store_.rbegin()->first);
+    }
+
+    rxcpp::observable<size_t> StorageImpl::onCommitStorage() {
+      return block_height_notifier_.get_observable();
     }
 
     std::shared_ptr<WsvQuery> StorageImpl::getWsvQuery() const { return wsv_; }

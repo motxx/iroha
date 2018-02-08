@@ -73,6 +73,8 @@ namespace iroha {
 
       void commit(std::unique_ptr<MutableStorage> mutableStorage) override;
 
+      rxcpp::observable<size_t> onCommitStorage() override;
+
       std::shared_ptr<WsvQuery> getWsvQuery() const override;
 
       std::shared_ptr<BlockQuery> getBlockQuery() const override;
@@ -123,6 +125,7 @@ namespace iroha {
       std::shared_timed_mutex rw_lock_;
 
       logger::Logger log_;
+      rxcpp::subjects::subject<size_t> block_height_notifier_;
 
      protected:
       const std::string init_ = R"(

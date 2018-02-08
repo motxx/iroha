@@ -20,9 +20,11 @@ namespace iroha {
   namespace network {
     PeerCommunicationServiceImpl::PeerCommunicationServiceImpl(
         std::shared_ptr<OrderingGate> ordering_gate,
-        std::shared_ptr<synchronizer::Synchronizer> synchronizer)
+        std::shared_ptr<synchronizer::Synchronizer> synchronizer,
+        std::shared_ptr<ametsuchi::Storage> storage)
         : ordering_gate_(std::move(ordering_gate)),
-          synchronizer_(std::move(synchronizer)) {
+          synchronizer_(std::move(synchronizer)),
+          storage_(std::move(storage)) {
       log_ = logger::log("PCS");
     }
 
@@ -39,6 +41,10 @@ namespace iroha {
 
     rxcpp::observable<Commit> PeerCommunicationServiceImpl::on_commit() {
       return synchronizer_->on_commit_chain();
+    }
+
+    rxcpp::observable<size_t> PeerCommunicationServiceImpl::on_apply_to_ledger() {
+      return storage_->onCommitStorage();
     }
   }  // namespace network
 }  // namespace iroha

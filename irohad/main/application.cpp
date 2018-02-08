@@ -127,7 +127,7 @@ void Irohad::initValidators() {
 
 void Irohad::initOrderingGate() {
   ordering_gate =
-      ordering_init.initOrderingGate(wsv, max_proposal_size_, proposal_delay_);
+      ordering_init.initOrderingGate(wsv, max_proposal_size_, proposal_delay_, pcs);
   log_->info("[Init] => init ordering gate - [{}]",
              logger::logBool(ordering_gate));
 }
@@ -169,8 +169,8 @@ void Irohad::initSynchronizer() {
 }
 
 void Irohad::initPeerCommunicationService() {
-  pcs = std::make_shared<PeerCommunicationServiceImpl>(ordering_gate,
-                                                       synchronizer);
+  pcs = std::make_shared<PeerCommunicationServiceImpl>(
+      ordering_gate, synchronizer, storage);
 
   pcs->on_proposal().subscribe(
       [this](auto) { log_->info("~~~~~~~~~| PROPOSAL ^_^ |~~~~~~~~~ "); });

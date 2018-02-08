@@ -56,6 +56,12 @@ namespace iroha {
        */
       virtual rxcpp::observable<Commit> on_commit() = 0;
 
+      /**
+       * Event is triggered when block is applied to ledger.
+       * @return observable with last block ids.
+       */
+      virtual rxcpp::observable<size_t> on_apply_to_ledger() = 0;
+
       virtual ~PeerCommunicationService() = default;
     };
   }  // namespace network

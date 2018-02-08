@@ -70,9 +70,18 @@ class OrderingServiceTest : public ::testing::Test {
   void SetUp() override {
     wsv = std::make_shared<MockPeerQuery>();
     fake_transport = std::make_shared<MockOrderingServiceTransport>();
+    fake_pcs = std::make_shared<MockPeerCommunicationService>();
+
+    rxcpp::subjects::subject<size_t> apply_ledger_notifier;
+    for (size_t block_height = 1; block_height < 100; ++block_height) {
+      apply_ledger_notifier.get_subscriber().on_next(block_height);
+    }
+    EXPECT_CALL(*fake_pcs, on_apply_to_ledger())
+        .WillRepeatedly(Return(apply_ledger_notifier.get_observable()));
   }
 
   std::shared_ptr<MockOrderingServiceTransport> fake_transport;
+  std::shared_ptr<MockPeerCommunicationService> fake_pcs;
   std::condition_variable cv;
   std::mutex m;
   std::string address{"0.0.0.0:50051"};
@@ -88,7 +97,7 @@ TEST_F(OrderingServiceTest, SimpleTest) {
   const size_t commit_delay = 1000;
 
   auto ordering_service = std::make_shared<OrderingServiceImpl>(
-      wsv, max_proposal, commit_delay, fake_transport);
+      wsv, max_proposal, commit_delay, fake_transport, fake_pcs);
   fake_transport->subscribe(ordering_service);
 
   EXPECT_CALL(*fake_transport, publishProposal(_, _)).Times(1);
@@ -101,7 +110,7 @@ TEST_F(OrderingServiceTest, ValidWhenProposalSizeStrategy) {
   const size_t commit_delay = 1000;
 
   auto ordering_service = std::make_shared<OrderingServiceImpl>(
-      wsv, max_proposal, commit_delay, fake_transport);
+      wsv, max_proposal, commit_delay, fake_transport, fake_pcs);
   fake_transport->subscribe(ordering_service);
 
   // Init => proposal size 5 => 2 proposals after 10 transactions
@@ -134,7 +143,7 @@ TEST_F(OrderingServiceTest, ValidWhenTimerStrategy) {
   const size_t commit_delay = 400;
 
   auto ordering_service = std::make_shared<OrderingServiceImpl>(
-      wsv, max_proposal, commit_delay, fake_transport);
+      wsv, max_proposal, commit_delay, fake_transport, fake_pcs);
   fake_transport->subscribe(ordering_service);
 
   EXPECT_CALL(*fake_transport, publishProposal(_, _))

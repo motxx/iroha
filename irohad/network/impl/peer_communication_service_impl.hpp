@@ -18,6 +18,7 @@
 #ifndef IROHA_PEER_COMMUNICATION_SERVICE_IMPL_HPP
 #define IROHA_PEER_COMMUNICATION_SERVICE_IMPL_HPP
 
+#include "ametsuchi/storage.hpp"
 #include "network/ordering_gate.hpp"
 #include "network/peer_communication_service.hpp"
 #include "synchronizer/synchronizer.hpp"
@@ -30,7 +31,8 @@ namespace iroha {
      public:
       PeerCommunicationServiceImpl(
           std::shared_ptr<OrderingGate> ordering_gate,
-          std::shared_ptr<synchronizer::Synchronizer> synchronizer);
+          std::shared_ptr<synchronizer::Synchronizer> synchronizer,
+          std::shared_ptr<ametsuchi::Storage> storage);
 
       void propagate_transaction(
           std::shared_ptr<const model::Transaction> transaction) override;
@@ -39,9 +41,12 @@ namespace iroha {
 
       rxcpp::observable<Commit> on_commit() override;
 
+      rxcpp::observable<size_t> on_apply_to_ledger() override;
+
      private:
       std::shared_ptr<OrderingGate> ordering_gate_;
       std::shared_ptr<synchronizer::Synchronizer> synchronizer_;
+      std::shared_ptr<ametsuchi::Storage> storage_;
       logger::Logger log_;
     };
   }  // namespace network

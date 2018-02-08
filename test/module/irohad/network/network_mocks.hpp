@@ -34,6 +34,8 @@ namespace iroha {
       MOCK_METHOD0(on_proposal, rxcpp::observable<model::Proposal>());
 
       MOCK_METHOD0(on_commit, rxcpp::observable<Commit>());
+
+      MOCK_METHOD0(on_apply_to_ledger, rxcpp::observable<size_t>());
     };
 
     class MockBlockLoader : public BlockLoader {

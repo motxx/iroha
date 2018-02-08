@@ -67,6 +67,9 @@ class CustomPeerCommunicationServiceMock : public PeerCommunicationService {
   rxcpp::observable<Commit> on_commit() override {
     return commit_notifier_.get_observable();
   }
+  rxcpp::observable<size_t> on_apply_to_ledger() override {
+    BOOST_ASSERT_MSG(false, "Not implemented");
+  }
 
  private:
   rxcpp::subjects::subject<iroha::model::Proposal> prop_notifier_;

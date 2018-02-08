@@ -33,6 +33,7 @@
 #include "model/converters/pb_transaction_factory.hpp"
 #include "model/proposal.hpp"
 #include "network/impl/async_grpc_client.hpp"
+#include "network/peer_communication_service.hpp"
 #include "ordering.grpc.pb.h"
 
 namespace iroha {
@@ -52,7 +53,8 @@ namespace iroha {
           std::shared_ptr<ametsuchi::PeerQuery> wsv,
           size_t max_size,
           size_t delay_milliseconds,
-          std::shared_ptr<network::OrderingServiceTransport> transport);
+          std::shared_ptr<network::OrderingServiceTransport> transport,
+          std::shared_ptr<network::PeerCommunicationService> pcs);
 
       /**
        * Process transaction received from network
@@ -102,6 +104,7 @@ namespace iroha {
        */
       const size_t delay_milliseconds_;
       std::shared_ptr<network::OrderingServiceTransport> transport_;
+      std::shared_ptr<network::PeerCommunicationService> pcs_;
       size_t proposal_height;
     };
   }  // namespace ordering

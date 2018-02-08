@@ -50,6 +50,12 @@ namespace iroha {
        */
       virtual void dropStorage() = 0;
 
+      /**
+       * Emit last block ids
+       * @return observable with last block ids.
+       */
+      virtual rxcpp::observable<size_t> onCommitStorage() = 0;
+
       virtual ~Storage() = default;
     };
 

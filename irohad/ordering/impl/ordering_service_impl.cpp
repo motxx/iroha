@@ -23,12 +23,18 @@ namespace iroha {
         std::shared_ptr<ametsuchi::PeerQuery> wsv,
         size_t max_size,
         size_t delay_milliseconds,
-        std::shared_ptr<network::OrderingServiceTransport> transport)
+        std::shared_ptr<network::OrderingServiceTransport> transport,
+        std::shared_ptr<network::PeerCommunicationService> pcs)
         : wsv_(wsv),
           max_size_(max_size),
           delay_milliseconds_(delay_milliseconds),
           transport_(transport),
-          proposal_height(2) {
+          pcs_(std::move(pcs)),
+          proposal_height(0) {
+      pcs_->on_apply_to_ledger().subscribe(
+          [this](auto last_block_height) {
+            this->proposal_height = last_block_height + 1;
+          });
       updateTimer();
     }
 
@@ -50,7 +56,7 @@ namespace iroha {
       }
 
       model::Proposal proposal(txs);
-      proposal.height = proposal_height++;
+      proposal.height = proposal_height;
 
       publishProposal(std::move(proposal));
     }

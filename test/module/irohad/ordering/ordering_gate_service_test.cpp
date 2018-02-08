@@ -17,6 +17,7 @@
 
 #include "framework/test_subscriber.hpp"
 #include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
+#include "module/irohad/network/network_mocks.hpp"
 
 #include "ordering/impl/ordering_gate_impl.hpp"
 #include "ordering/impl/ordering_gate_transport_grpc.hpp"
@@ -40,6 +41,15 @@ class OrderingGateServiceTest : public ::testing::Test {
     gate_transport->subscribe(gate);
 
     service_transport = std::make_shared<OrderingServiceTransportGrpc>();
+    fake_pcs = std::make_shared<MockPeerCommunicationService>();
+
+    rxcpp::subjects::subject<size_t> apply_ledger_notifier;
+    for (size_t block_height = 1; block_height < 100; ++block_height) {
+      apply_ledger_notifier.get_subscriber().on_next(block_height);
+    }
+    EXPECT_CALL(*fake_pcs, on_apply_to_ledger())
+        .WillRepeatedly(Return(apply_ledger_notifier.get_observable()));
+
     counter = 2;
   }
 
@@ -109,6 +119,7 @@ class OrderingGateServiceTest : public ::testing::Test {
   Peer peer;
   std::shared_ptr<OrderingGateTransportGrpc> gate_transport;
   std::shared_ptr<OrderingServiceTransportGrpc> service_transport;
+  std::shared_ptr<MockPeerCommunicationService> fake_pcs;
 };
 
 TEST_F(OrderingGateServiceTest, SplittingBunchTransactions) {
@@ -121,7 +132,7 @@ TEST_F(OrderingGateServiceTest, SplittingBunchTransactions) {
   const size_t commit_delay = 400;
 
   service = std::make_shared<OrderingServiceImpl>(
-      wsv, max_proposal, commit_delay, service_transport);
+      wsv, max_proposal, commit_delay, service_transport, fake_pcs);
   service_transport->subscribe(service);
 
   start();
@@ -163,7 +174,7 @@ TEST_F(OrderingGateServiceTest, ProposalsReceivedWhenProposalSize) {
   const size_t commit_delay = 1000;
 
   service = std::make_shared<OrderingServiceImpl>(
-      wsv, max_proposal, commit_delay, service_transport);
+      wsv, max_proposal, commit_delay, service_transport, fake_pcs);
   service_transport->subscribe(service);
 
   start();
